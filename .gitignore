@@ -1,0 +1,44 @@
+# Archivos y directorios de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+env/
+.env
+
+# Archivos de configuración de IDE
+.vscode/
+.idea/
+
+# Archivos de log
+*.log
+
+# Archivos y directorios específicos del proyecto
+Consolidado/
+*.xls
+*.xlsx
+
+# Archivos de sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de distribución
+dist/
+build/
+*.egg-info/
+
+# Archivos de caché de Jupyter Notebook
+.ipynb_checkpoints
+
+# Archivos de test y cobertura
+.coverage
+htmlcov/
+
+# Archivos temporales de Streamlit
+.streamlit/
+
+# Directorios temporales
+tmp/
+temp/
