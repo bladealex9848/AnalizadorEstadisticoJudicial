@@ -1,3 +1,5 @@
+![Logo de AnalizadorEstadisticoJudicial](https://raw.githubusercontent.com/bladealex9848/AnalizadorEstadisticoJudicial/main/assets/logo.jpg)
+
 # AnalizadorEstadisticoJudicial
 
 ## Tabla de Contenidos

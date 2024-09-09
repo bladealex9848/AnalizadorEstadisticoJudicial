@@ -88,6 +88,12 @@ def create_consolidated_file(all_sheets_data, subfolder):
 # Función principal
 def main():
     st.title("AnalizadorEstadisticoJudicial 📊")
+
+    st.write("""
+        [![ver código fuente](https://img.shields.io/badge/Repositorio%20GitHub-gris?logo=github)](https://github.com/bladealex9848/AnalizadorEstadisticoJudicial)
+        ![Visitantes](https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fjudidata.streamlit.app&label=Visitantes&labelColor=%235d5d5d&countColor=%231e7ebf&style=flat)
+        """)
+
     st.markdown("""
     Esta aplicación analiza archivos Excel trimestrales y genera informes consolidados 
     para el Consejo Seccional de la Judicatura de Sucre.
