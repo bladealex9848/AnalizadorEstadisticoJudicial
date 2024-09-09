@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 from pathlib import Path
 import tempfile
@@ -14,6 +15,7 @@ import glob
 from datetime import datetime
 from openpyxl.utils.dataframe import dataframe_to_rows
 import warnings
+
 
 # Configuración de la página
 st.set_page_config(page_title="AnalizadorEstadisticoJudicial", page_icon="📊", layout="wide")
@@ -95,18 +97,8 @@ def process_excel_files(excel_files, subfolder):
             
             process_file(xls, file_path, all_sheets_data)
         except Exception as e:
-            st.warning(f"Error al procesar {file_path.name} con el método predeterminado. Intentando métodos alternativos.")
-            try:
-                xls = pd.ExcelFile(file, engine='openpyxl')
-                process_file(xls, file_path, all_sheets_data)
-            except Exception as e2:
-                try:
-                    xls = pd.ExcelFile(file, engine='xlrd')
-                    process_file(xls, file_path, all_sheets_data)
-                except Exception as e3:
-                    st.error(f"No se pudo procesar el archivo {file_path.name} con ningún método.")
-                    st.error(f"Errores encontrados: \n1. {str(e)}\n2. {str(e2)}\n3. {str(e3)}")
-                    log_message(f"Error al procesar el archivo {file_path.name}: {str(e)}\n{str(e2)}\n{str(e3)}")
+            st.warning(f"Error al procesar {file_path.name}: {str(e)}")
+            log_message(f"Error al procesar {file_path.name}: {str(e)}")
     return all_sheets_data
 
 def process_file(xls, file_path, all_sheets_data):
@@ -116,17 +108,19 @@ def process_file(xls, file_path, all_sheets_data):
             if len(data) >= 20 and 'Total' in data[0].values:
                 if sheet_name not in all_sheets_data:
                     all_sheets_data[sheet_name] = []
+                
+                # Reemplazar NaN con None para evitar problemas de conversión
+                data = data.replace({np.nan: None})
+                
                 header_rows = data.iloc[:19].values.tolist()
                 row_20_titles = [''] + data.iloc[19, 1:].tolist()
                 total_row_index = data[data[0] == 'Total'].index[0]
                 total_row_values = ['Total'] + data.iloc[total_row_index, 1:].tolist()
                 
-                max_len = max(len(row) for row in header_rows + [row_20_titles, total_row_values])
-                header_rows = [row + [None] * (max_len - len(row)) for row in header_rows]
-                row_20_titles = row_20_titles + [None] * (max_len - len(row_20_titles))
-                total_row_values = total_row_values + [None] * (max_len - len(total_row_values))
-                
                 all_sheets_data[sheet_name].append(header_rows + [row_20_titles, total_row_values + [file_path.name]])
+                
+                st.text(f"Datos procesados para la hoja '{sheet_name}':")
+                st.dataframe(data.head())
         except Exception as e:
             st.warning(f"Error al procesar la hoja '{sheet_name}' en {file_path.name}: {str(e)}")
             log_message(f"Error al procesar la hoja '{sheet_name}' en {file_path.name}: {str(e)}")
@@ -137,29 +131,13 @@ def create_consolidated_file(all_sheets_data, subfolder):
     consolidated_writer = openpyxl.Workbook()
     consolidated_writer.remove(consolidated_writer.active)
 
-    border = Border(left=Side(style='thin'), right=Side(style='thin'), 
-                    top=Side(style='thin'), bottom=Side(style='thin'))
-
     for sheet, data in all_sheets_data.items():
         ws = consolidated_writer.create_sheet(title=sheet)
-        column_titles = data[0]
-        ws.append(column_titles)
-
-        has_multiple_parts = any("_" in item[-1] for item in data[1:])
-
-        for row in sorted(data[1:], key=lambda x: sort_key_func(x[-1])):
-            ws.append(row)
-
-        if has_multiple_parts:
-            ws.append([])
-            consolidated_data = consolidate_data(data)
-            for row in consolidated_data:
-                ws.append(row)
-
-        for row in ws.rows:
-            for cell in row:
-                cell.alignment = Alignment(wrap_text=True)
-                cell.border = border
+        
+        for row_data in data:
+            for row in row_data:
+                # Convertir elementos a string para evitar problemas con NaN
+                ws.append([str(cell) if cell is not None else '' for cell in row])
 
     consolidated_file = os.path.join(subfolder, 'Consolidado.xlsx')
     try:
@@ -240,6 +218,9 @@ def main():
                                 st.error("No se pudieron procesar los archivos. Verifica que contengan datos válidos.")
                                 st.session_state.files_processed = False
                                 return
+
+                            st.write("Datos procesados:")
+                            st.json(st.session_state.all_sheets_data)
 
                             st.session_state.consolidated_file = create_consolidated_file(st.session_state.all_sheets_data, temp_dir)
 
