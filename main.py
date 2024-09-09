@@ -4,14 +4,16 @@ import plotly.express as px
 from pathlib import Path
 import tempfile
 import os
-import xlrd
 import openpyxl
 from openpyxl.styles import Alignment, Border, Side
 import base64
 from io import BytesIO
 import re
-import base64
 import requests
+import glob
+from datetime import datetime
+from openpyxl.utils.dataframe import dataframe_to_rows
+import warnings
 
 # Configuración de la página
 st.set_page_config(page_title="AnalizadorEstadisticoJudicial", page_icon="📊", layout="wide")
@@ -54,7 +56,6 @@ def show_sidebar_resources():
     </style>
     """, unsafe_allow_html=True)
 
-# Función para descargar archivos binarios
 def get_binary_file_downloader_html(bin_file, file_label='File'):
     with open(bin_file, 'rb') as f:
         data = f.read()
@@ -62,7 +63,6 @@ def get_binary_file_downloader_html(bin_file, file_label='File'):
     href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{os.path.basename(bin_file)}" class="btn-download">Descargar {file_label}</a>'
     return href
 
-# Función para ordenar los archivos
 def sort_key_func(file_name):
     order = ["Primer", "Segundo", "Tercer", "Cuarto"]
     match = re.match(r"(\w+ Trimestre)(_?(\d)?)", file_name)
@@ -74,14 +74,20 @@ def sort_key_func(file_name):
 def sorted_files(files):
     return sorted(files, key=lambda x: sort_key_func(Path(x).name))
 
-# Función para procesar los archivos Excel
+def log_message(message, add_space=False):
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    log_entry = f"[{timestamp}] {message}"
+    with open("log.txt", "a") as log_file:
+        if add_space:
+            log_file.write("\n")
+        log_file.write(log_entry + "\n")
+
 def process_excel_files(excel_files, subfolder):
     all_sheets_data = {}
     for file in excel_files:
         file_path = Path(file)
         st.info(f"Procesando archivo: {file_path.name}")
         try:
-            # Primer intento: usar el motor predeterminado basado en la extensión
             if file_path.suffix.lower() == '.xls':
                 xls = pd.ExcelFile(file, engine='xlrd')
             else:
@@ -91,19 +97,16 @@ def process_excel_files(excel_files, subfolder):
         except Exception as e:
             st.warning(f"Error al procesar {file_path.name} con el método predeterminado. Intentando métodos alternativos.")
             try:
-                # Segundo intento: usar openpyxl para todos los tipos de archivo
                 xls = pd.ExcelFile(file, engine='openpyxl')
                 process_file(xls, file_path, all_sheets_data)
             except Exception as e2:
                 try:
-                    # Tercer intento: usar xlrd para todos los tipos de archivo
                     xls = pd.ExcelFile(file, engine='xlrd')
                     process_file(xls, file_path, all_sheets_data)
                 except Exception as e3:
                     st.error(f"No se pudo procesar el archivo {file_path.name} con ningún método.")
                     st.error(f"Errores encontrados: \n1. {str(e)}\n2. {str(e2)}\n3. {str(e3)}")
-                    st.info("Intente usar el método manual descargando el ejecutable o use el dataset de muestra.")
-    
+                    log_message(f"Error al procesar el archivo {file_path.name}: {str(e)}\n{str(e2)}\n{str(e3)}")
     return all_sheets_data
 
 def process_file(xls, file_path, all_sheets_data):
@@ -117,13 +120,19 @@ def process_file(xls, file_path, all_sheets_data):
                 row_20_titles = [''] + data.iloc[19, 1:].tolist()
                 total_row_index = data[data[0] == 'Total'].index[0]
                 total_row_values = ['Total'] + data.iloc[total_row_index, 1:].tolist()
+                
+                max_len = max(len(row) for row in header_rows + [row_20_titles, total_row_values])
+                header_rows = [row + [None] * (max_len - len(row)) for row in header_rows]
+                row_20_titles = row_20_titles + [None] * (max_len - len(row_20_titles))
+                total_row_values = total_row_values + [None] * (max_len - len(total_row_values))
+                
                 all_sheets_data[sheet_name].append(header_rows + [row_20_titles, total_row_values + [file_path.name]])
         except Exception as e:
             st.warning(f"Error al procesar la hoja '{sheet_name}' en {file_path.name}: {str(e)}")
+            log_message(f"Error al procesar la hoja '{sheet_name}' en {file_path.name}: {str(e)}")
 
     st.success(f"Archivo {file_path.name} procesado con éxito.")
 
-# Función para crear el archivo consolidado
 def create_consolidated_file(all_sheets_data, subfolder):
     consolidated_writer = openpyxl.Workbook()
     consolidated_writer.remove(consolidated_writer.active)
@@ -131,27 +140,26 @@ def create_consolidated_file(all_sheets_data, subfolder):
     border = Border(left=Side(style='thin'), right=Side(style='thin'), 
                     top=Side(style='thin'), bottom=Side(style='thin'))
 
-    sheets_created = 0
-
-    for sheet, data_list in all_sheets_data.items():
-        if not data_list:
-            continue
-
+    for sheet, data in all_sheets_data.items():
         ws = consolidated_writer.create_sheet(title=sheet)
-        sheets_created += 1
+        column_titles = data[0]
+        ws.append(column_titles)
 
-        for data in data_list:
-            for row in data:
+        has_multiple_parts = any("_" in item[-1] for item in data[1:])
+
+        for row in sorted(data[1:], key=lambda x: sort_key_func(x[-1])):
+            ws.append(row)
+
+        if has_multiple_parts:
+            ws.append([])
+            consolidated_data = consolidate_data(data)
+            for row in consolidated_data:
                 ws.append(row)
 
         for row in ws.rows:
             for cell in row:
                 cell.alignment = Alignment(wrap_text=True)
                 cell.border = border
-
-    if sheets_created == 0:
-        st.warning("No se crearon hojas en el archivo consolidado.")
-        return None
 
     consolidated_file = os.path.join(subfolder, 'Consolidado.xlsx')
     try:
@@ -160,9 +168,21 @@ def create_consolidated_file(all_sheets_data, subfolder):
         return consolidated_file
     except Exception as e:
         st.error(f"Error al guardar el archivo consolidado: {str(e)}")
+        log_message(f"Error al guardar el archivo consolidado: {str(e)}")
         return None
 
-# Función principal
+def consolidate_data(data):
+    consolidated_data = [data[0]]
+    trimesters = ["Primer Trimestre", "Segundo Trimestre", "Tercer Trimestre", "Cuarto Trimestre"]
+
+    for trimester in trimesters:
+        rows = [row for row in data[1:] if trimester in row[-1]]
+        if rows:
+            consolidated_row = ['Total'] + [sum(row[i] for row in rows) for i in range(1, len(rows[0]) - 1)] + [trimester]
+            consolidated_data.append(consolidated_row)
+
+    return consolidated_data
+
 def main():
     st.title("AnalizadorEstadisticoJudicial 📊")
 
@@ -176,7 +196,6 @@ def main():
     para el Consejo Seccional de la Judicatura de Sucre.
     """)
 
-    # Inicializar variables de estado
     if 'all_sheets_data' not in st.session_state:
         st.session_state.all_sheets_data = None
     if 'consolidated_file' not in st.session_state:
@@ -184,10 +203,8 @@ def main():
     if 'files_processed' not in st.session_state:
         st.session_state.files_processed = False    
     
-    # Llamar a la función para mostrar los recursos en la barra lateral
     show_sidebar_resources()
     
-    # Procesar archivos cargados
     with st.sidebar:
         st.header("Carga de Archivos")
         uploaded_files = st.file_uploader("Carga tus archivos Excel trimestrales", 
@@ -233,9 +250,9 @@ def main():
 
                         st.session_state.files_processed = True
                     except Exception as e:
-                        st.error(f"""Error al procesar los archivos: {str(e)}
-                        
-                        Si el error persiste, intente usar el método manual descargando el ejecutable o use el dataset de muestra.""")
+                        st.error(f"Error al procesar los archivos: {str(e)}")
+                        log_message(f"Error al procesar los archivos: {str(e)}")
+                        st.info("Intente usar el método manual descargando el ejecutable o use el dataset de muestra.")
                         st.session_state.all_sheets_data = None
                         st.session_state.consolidated_file = None
                         st.session_state.files_processed = False
@@ -243,13 +260,11 @@ def main():
                 st.warning("Por favor, carga archivos antes de procesar.")
 
     st.sidebar.markdown("---")
-    # Centrar el contenido de la barra lateral
     st.sidebar.image("assets/logo_CSJ_Sucre.png", width=200)
     st.sidebar.write("<div style='text-align: center;'>Desarrollado por Alexander Oviedo Fadul</div>", unsafe_allow_html=True)
     st.sidebar.write("<div style='text-align: center;'>v.1.1.1</div>", unsafe_allow_html=True)
     st.sidebar.write("<div style='text-align: center;'><a href='https://github.com/bladealex9848'>GitHub</a> | <a href='https://alexanderoviedofadul.dev/'>Website</a> | <a href='https://www.linkedin.com/in/alexander-oviedo-fadul/'>LinkedIn</a></div>", unsafe_allow_html=True)
 
-    # Mostrar resultados en pestañas
     if st.session_state.files_processed and st.session_state.all_sheets_data:
         tabs = st.tabs(["Resumen", "Detalles por Trimestre", "Gráficos", "Descargar Informe"])
 
@@ -284,25 +299,6 @@ def main():
     ejecutable_path = Path('assets/AnalizadorEstadisticoJudicial v1.1.exe')
     if ejecutable_path.exists():
         st.markdown(get_binary_file_downloader_html(ejecutable_path, 'Ejecutable'), unsafe_allow_html=True)
-        st.markdown("""
-        <style>
-        .btn-download {
-            display: inline-block;
-            padding: 0.5em 1em;
-            color: #ffffff !important;
-            background-color: #0066cc;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: bold;
-            text-align: center;
-        }
-        .btn-download:hover {
-            background-color: #0056b3;
-            color: #ffffff !important;
-            text-decoration: none;
-        }
-        </style>
-        """, unsafe_allow_html=True)
     else:
         st.warning("El ejecutable no está disponible en este momento. Por favor, contacte al administrador del sistema.")
 
@@ -314,8 +310,12 @@ def show_summary(all_sheets_data):
     for sheet, data_list in all_sheets_data.items():
         st.subheader(f"Hoja: {sheet}")
         for data in data_list:
-            df = pd.DataFrame(data[1:], columns=data[0])
-            st.dataframe(df)
+            try:
+                df = pd.DataFrame(data[1:], columns=data[0])
+                st.dataframe(df)
+            except Exception as e:
+                st.error(f"Error al mostrar datos de la hoja {sheet}: {str(e)}")
+                st.write("Datos en bruto:", data)
 
 def show_details(all_sheets_data):
     st.header("Detalles por Trimestre")
@@ -327,11 +327,15 @@ def show_details(all_sheets_data):
     
     for sheet, data_list in all_sheets_data.items():
         for data in data_list:
-            df = pd.DataFrame(data[1:], columns=data[0])
-            trimester_data = df[df.iloc[:, -1].str.contains(trimester)]
-            if not trimester_data.empty:
-                st.subheader(f"{sheet} - {trimester}")
-                st.dataframe(trimester_data)
+            try:
+                df = pd.DataFrame(data[1:], columns=data[0])
+                trimester_data = df[df.iloc[:, -1].str.contains(trimester)]
+                if not trimester_data.empty:
+                    st.subheader(f"{sheet} - {trimester}")
+                    st.dataframe(trimester_data)
+            except Exception as e:
+                st.error(f"Error al mostrar detalles de la hoja {sheet} para {trimester}: {str(e)}")
+                st.write("Datos en bruto:", data)
 
 def show_charts(all_sheets_data):
     st.header("Visualización de Datos")
@@ -342,18 +346,18 @@ def show_charts(all_sheets_data):
     sheet = st.selectbox("Selecciona una hoja", list(all_sheets_data.keys()))
     
     if all_sheets_data[sheet]:
-        df = pd.DataFrame(all_sheets_data[sheet][0][1:], columns=all_sheets_data[sheet][0][0])
-        numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
-        
-        if numeric_columns.empty:
-            st.warning("No se encontraron columnas numéricas para graficar.")
-            return
-
-        chart_type = st.radio("Tipo de gráfico", ["Barras", "Líneas", "Dispersión"])
-        x_axis = st.selectbox("Eje X", df.columns)
-        y_axis = st.selectbox("Eje Y", numeric_columns)
-
         try:
+            df = pd.DataFrame(all_sheets_data[sheet][0][1:], columns=all_sheets_data[sheet][0][0])
+            numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+            
+            if numeric_columns.empty:
+                st.warning("No se encontraron columnas numéricas para graficar.")
+                return
+
+            chart_type = st.radio("Tipo de gráfico", ["Barras", "Líneas", "Dispersión"])
+            x_axis = st.selectbox("Eje X", df.columns)
+            y_axis = st.selectbox("Eje Y", numeric_columns)
+
             if chart_type == "Barras":
                 fig = px.bar(df, x=x_axis, y=y_axis, title=f"{y_axis} por {x_axis}")
             elif chart_type == "Líneas":
@@ -364,6 +368,7 @@ def show_charts(all_sheets_data):
             st.plotly_chart(fig)
         except Exception as e:
             st.error(f"Error al crear el gráfico: {str(e)}")
+            st.write("Datos en bruto:", all_sheets_data[sheet])
     else:
         st.warning(f"No hay datos disponibles para la hoja {sheet}")
 
@@ -427,43 +432,6 @@ def load_sample_dataset():
                 ["Tasa de Resolución", 1.02, "Cuarto Trimestre"],
                 ["Tasa de Congestión", 1.16, "Cuarto Trimestre"],
                 ["Tasa de Pendencia", 0.16, "Cuarto Trimestre"]
-            ]
-        ],
-        "Datos Demográficos": [
-            [
-                ["Grupo de Edad", "Género", "Estrato Socioeconómico", "Cantidad de Casos", "Trimestre"],
-                ["18-25", "Femenino", "1-2", 50, "Primer Trimestre"],
-                ["18-25", "Masculino", "1-2", 30, "Primer Trimestre"],
-                ["26-35", "Femenino", "3-4", 80, "Primer Trimestre"],
-                ["26-35", "Masculino", "3-4", 60, "Primer Trimestre"],
-                ["36-50", "Femenino", "5-6", 70, "Primer Trimestre"],
-                ["36-50", "Masculino", "5-6", 50, "Primer Trimestre"],
-                ["51+", "Femenino", "3-4", 40, "Primer Trimestre"],
-                ["51+", "Masculino", "3-4", 30, "Primer Trimestre"],
-                ["18-25", "Femenino", "1-2", 55, "Segundo Trimestre"],
-                ["18-25", "Masculino", "1-2", 35, "Segundo Trimestre"],
-                ["26-35", "Femenino", "3-4", 85, "Segundo Trimestre"],
-                ["26-35", "Masculino", "3-4", 65, "Segundo Trimestre"],
-                ["36-50", "Femenino", "5-6", 75, "Segundo Trimestre"],
-                ["36-50", "Masculino", "5-6", 55, "Segundo Trimestre"],
-                ["51+", "Femenino", "3-4", 45, "Segundo Trimestre"],
-                ["51+", "Masculino", "3-4", 35, "Segundo Trimestre"],
-                ["18-25", "Femenino", "1-2", 60, "Tercer Trimestre"],
-                ["18-25", "Masculino", "1-2", 40, "Tercer Trimestre"],
-                ["26-35", "Femenino", "3-4", 90, "Tercer Trimestre"],
-                ["26-35", "Masculino", "3-4", 70, "Tercer Trimestre"],
-                ["36-50", "Femenino", "5-6", 80, "Tercer Trimestre"],
-                ["36-50", "Masculino", "5-6", 60, "Tercer Trimestre"],
-                ["51+", "Femenino", "3-4", 50, "Tercer Trimestre"],
-                ["51+", "Masculino", "3-4", 40, "Tercer Trimestre"],
-                ["18-25", "Femenino", "1-2", 58, "Cuarto Trimestre"],
-                ["18-25", "Masculino", "1-2", 38, "Cuarto Trimestre"],
-                ["26-35", "Femenino", "3-4", 88, "Cuarto Trimestre"],
-                ["26-35", "Masculino", "3-4", 68, "Cuarto Trimestre"],
-                ["36-50", "Femenino", "5-6", 78, "Cuarto Trimestre"],
-                ["36-50", "Masculino", "5-6", 58, "Cuarto Trimestre"],
-                ["51+", "Femenino", "3-4", 48, "Cuarto Trimestre"],
-                ["51+", "Masculino", "3-4", 38, "Cuarto Trimestre"]
             ]
         ]
     }

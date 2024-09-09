@@ -25,3 +25,5 @@
 [2024-09-08 21:30:47] Procesando archivos Excel.
 [2024-09-08 21:30:47] Iniciando la creación del archivo consolidado.
 [2024-09-08 21:30:47] Error al guardar el archivo consolidado: At least one sheet must be visible.
+[2024-09-09 06:54:00] Error al procesar los archivos: Cannot convert [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan] to Excel
+[2024-09-09 06:54:40] Error al procesar los archivos: Cannot convert [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan] to Excel
