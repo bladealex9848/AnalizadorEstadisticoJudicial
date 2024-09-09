@@ -10,6 +10,8 @@
 5. [Instalación](#instalación)
 6. [Configuración](#configuración)
 7. [Uso](#uso)
+   - [Versión Web (Streamlit)](#versión-web-streamlit)
+   - [Versión de Escritorio](#versión-de-escritorio)
 8. [Arquitectura del Sistema](#arquitectura-del-sistema)
 9. [Componentes Principales](#componentes-principales)
 10. [Flujo de Trabajo](#flujo-de-trabajo)
@@ -24,26 +26,33 @@
 
 ## Descripción
 
-AnalizadorEstadisticoJudicial es un programa diseñado para automatizar el análisis de archivos Excel relacionados con la organización del trabajo y la eficiencia en la Judicatura. Este sistema procesa automáticamente los datos y genera un consolidado, facilitando significativamente la tarea de análisis y presentación de informes estadísticos judiciales.
+AnalizadorEstadisticoJudicial es una aplicación diseñada para automatizar el análisis de archivos Excel relacionados con la organización del trabajo y la eficiencia en la Judicatura. Este sistema procesa automáticamente los datos y genera un consolidado, facilitando significativamente la tarea de análisis y presentación de informes estadísticos judiciales.
 
-El programa busca y procesa archivos Excel con nombres específicos (por ejemplo, 'Primer Trimestre.xls', 'Segundo Trimestre.xls', etc.), incluyendo aquellos con sufijos numéricos como 'Tercer Trimestre_1.xls'. Esto permite manejar múltiples archivos para un trimestre específico. Cada hoja de estos archivos es procesada y finalmente se genera un archivo consolidado con todos los resultados.
+La aplicación está disponible en dos versiones:
+1. Una versión web desarrollada con Streamlit, que ofrece una interfaz gráfica intuitiva y accesible desde cualquier navegador.
+2. Una versión de escritorio para usuarios que prefieren una aplicación local.
+
+Ambas versiones procesan archivos Excel con nombres específicos (por ejemplo, 'Primer Trimestre.xls', 'Segundo Trimestre.xls', etc.), incluyendo aquellos con sufijos numéricos como 'Tercer Trimestre_1.xls'. Esto permite manejar múltiples archivos para un trimestre específico. Cada hoja de estos archivos es procesada y finalmente se genera un archivo consolidado con todos los resultados.
 
 ## Características Principales
 
+- Interfaz web intuitiva desarrollada con Streamlit
 - Procesamiento automático de archivos Excel trimestrales
 - Generación de archivos de resultados individuales por cada archivo Excel
 - Creación de un archivo consolidado con todos los resultados
+- Visualización interactiva de datos con gráficos y tablas
 - Manejo de múltiples archivos por trimestre
 - Sistema robusto de logging para seguimiento y auditoría
-- Interfaz de línea de comandos intuitiva
 - Optimización para el procesamiento eficiente de grandes volúmenes de datos
+- Versión de escritorio disponible para uso local
 
 ## Estructura del Proyecto
 
 ```
 AnalizadorEstadisticoJudicial/
 │
-├── AnalizadorEstadisticoJudicial.py  # Script principal
+├── main.py                           # Script principal de la versión web (Streamlit)
+├── AnalizadorEstadisticoJudicial.py  # Script principal de la versión de escritorio
 ├── README.md                         # Este archivo
 ├── requirements.txt                  # Dependencias del proyecto
 ├── log.txt                           # Archivo de registro
@@ -56,21 +65,26 @@ AnalizadorEstadisticoJudicial/
 │       ├── Cuarto Trimestre_results.xlsx
 │       └── Consolidado.xlsx
 │
-└── tests/                            # Directorio para pruebas unitarias
-└── assets/                           # Directorio para recursos estáticos
+├── tests/                            # Directorio para pruebas unitarias
+├── assets/                           # Directorio para recursos estáticos
+│   ├── logo.jpg                      # Logo del proyecto
+│   └── AnalizadorEstadisticoJudicial v1.1.exe  # Ejecutable de la versión de escritorio
+│
+└── .streamlit/                       # Configuración de Streamlit (si es necesario)
 ```
 
 ## Requisitos Previos
 
-- Python 3.8+
-- Bibliotecas de Python: pandas, openpyxl, rich
-- Archivos Excel de datos trimestrales en el mismo directorio que el script
+- Python 3.11+
+- Bibliotecas de Python: streamlit, pandas, plotly, openpyxl, xlrd, rich
+- Navegador web moderno (para la versión web)
+- Archivos Excel de datos trimestrales
 
 ## Instalación
 
 1. Clone el repositorio:
    ```
-   git clone https://github.com/bladalex9848/AnalizadorEstadisticoJudicial.git
+   git clone https://github.com/bladealex9848/AnalizadorEstadisticoJudicial.git
    cd AnalizadorEstadisticoJudicial
    ```
 
@@ -81,127 +95,105 @@ AnalizadorEstadisticoJudicial/
 
 ## Configuración
 
-No se requiere configuración adicional. Asegúrese de que los archivos Excel que desea analizar estén en el mismo directorio que el script principal.
+No se requiere configuración adicional para el uso básico. Para configuraciones avanzadas, consulte la sección de [Uso](#uso).
 
 ## Uso
 
-Hay dos formas principales de utilizar el AnalizadorEstadisticoJudicial:
+### Versión Web (Streamlit)
 
-### 1. Ejecución del script Python
-
-Si tiene Python instalado y prefiere ejecutar el script directamente:
-
-1. Asegúrese de que los archivos Excel trimestrales estén en el mismo directorio que el script.
-2. Abra una terminal o línea de comandos.
-3. Navegue hasta el directorio donde se encuentra el script.
-4. Ejecute el siguiente comando:
+1. Ejecute la aplicación Streamlit:
    ```
-   python AnalizadorEstadisticoJudicial.py
+   streamlit run main.py
    ```
-5. El programa procesará automáticamente los archivos y creará una carpeta 'Consolidado' con los resultados en el mismo directorio.
+2. Abra su navegador y vaya a la dirección indicada (generalmente `http://localhost:8501`).
+3. Use la interfaz web para:
+   - Cargar archivos Excel trimestrales
+   - Procesar los archivos
+   - Visualizar resultados en gráficos interactivos
+   - Descargar el informe consolidado
 
-### 2. Uso del archivo ejecutable
+#### Características de la Versión Web:
+- Carga de múltiples archivos Excel
+- Visualización de datos en tablas interactivas
+- Generación de gráficos personalizables
+- Descarga de informes consolidados
+- Acceso a recursos adicionales y documentación
 
-Para usuarios que prefieren no trabajar con Python directamente, ofrecemos un archivo ejecutable:
+### Versión de Escritorio
 
 1. Descargue 'AnalizadorEstadisticoJudicial v1.1.exe' desde la carpeta 'assets' del repositorio.
-2. Tiene dos opciones para la ubicación de los archivos Excel a procesar:
-   a) Coloque el ejecutable en la misma carpeta donde están los archivos Excel trimestrales.
-   b) Cree una carpeta llamada 'PROCESAR' en la raíz de la unidad C (C:\PROCESAR) y coloque allí los archivos Excel.
-3. Haga doble clic en 'AnalizadorEstadisticoJudicial v1.1.exe' para ejecutarlo.
-4. El programa buscará automáticamente los archivos Excel en la carpeta actual o en C:\PROCESAR, los procesará y creará una carpeta 'Consolidado' con los resultados.
+2. Coloque el ejecutable en la misma carpeta que los archivos Excel a procesar, o cree una carpeta 'PROCESAR' en C:\ y coloque allí los archivos.
+3. Ejecute el programa haciendo doble clic en el ejecutable.
+4. Siga las instrucciones en pantalla para procesar los archivos y generar el informe consolidado.
 
-### Notas importantes:
+### Notas Importantes:
 
 - Asegúrese de que los archivos Excel sigan el formato de nomenclatura esperado (por ejemplo, 'Primer Trimestre.xls', 'Segundo Trimestre.xls', etc.).
-- El programa también maneja archivos con sufijos numéricos como 'Tercer Trimestre_1.xls' para múltiples archivos del mismo trimestre.
-- Después de la ejecución, revise la carpeta 'Consolidado' para encontrar:
-  - Archivos de resultados individuales para cada archivo Excel procesado.
-  - Un archivo 'Consolidado.xlsx' que combina todos los resultados.
-- Se generará un archivo 'log.txt' en la misma ubicación que el ejecutable o script, que contiene detalles sobre el proceso de ejecución y cualquier error encontrado.
-
-### Recomendaciones:
-
-- Antes de procesar los archivos reales, realice una prueba con copias de sus archivos Excel para familiarizarse con el proceso y los resultados.
-- Revise el archivo 'log.txt' después de cada ejecución para verificar que no haya habido errores o advertencias importantes.
-- Mantenga una copia de seguridad de sus archivos Excel originales antes de procesarlos.
+- La aplicación maneja archivos con sufijos numéricos (ej: 'Tercer Trimestre_1.xls') para múltiples archivos del mismo trimestre.
+- Los resultados se guardan en una carpeta 'Consolidado' con marca de tiempo.
+- Revise el archivo 'log.txt' para detalles sobre la ejecución y posibles errores.
 
 ## Arquitectura del Sistema
 
-AnalizadorEstadisticoJudicial utiliza una arquitectura modular para procesar los datos:
+AnalizadorEstadisticoJudicial utiliza una arquitectura modular:
 
-1. Módulo de Lectura de Archivos: Lee y valida los archivos Excel de entrada.
-2. Módulo de Procesamiento de Hojas: Analiza cada hoja de los archivos Excel.
-3. Módulo de Generación de Resultados: Crea archivos de resultados individuales.
-4. Módulo de Consolidación: Combina los resultados en un archivo consolidado.
-5. Sistema de Logging: Registra todas las operaciones y errores.
+1. Interfaz de Usuario: 
+   - Web: Implementada con Streamlit para una experiencia interactiva.
+   - Escritorio: Interfaz de línea de comandos.
+2. Módulo de Lectura de Archivos: Lee y valida los archivos Excel de entrada.
+3. Módulo de Procesamiento de Hojas: Analiza cada hoja de los archivos Excel.
+4. Módulo de Generación de Resultados: Crea archivos de resultados individuales.
+5. Módulo de Consolidación: Combina los resultados en un archivo consolidado.
+6. Módulo de Visualización: Genera gráficos y tablas interactivas (versión web).
+7. Sistema de Logging: Registra todas las operaciones y errores.
 
 ## Componentes Principales
 
-- `create_info_table()`: Genera una tabla informativa sobre el programa.
+- `main.py`: Punto de entrada para la versión web (Streamlit).
 - `process_excel_files()`: Procesa los archivos Excel y genera resultados individuales.
 - `create_consolidated_file()`: Crea el archivo consolidado final.
-- `sort_key_func()` y `sorted_files()`: Funciones para ordenar los archivos de manera lógica.
+- `show_charts()`: Genera visualizaciones interactivas de los datos (versión web).
+- `offer_download()`: Permite la descarga del informe consolidado (versión web).
 
 ## Flujo de Trabajo
 
-1. El programa inicia y muestra información sobre su versión y propósito.
-2. Se crea la estructura de carpetas para los resultados.
-3. Se buscan y ordenan los archivos Excel en el directorio.
-4. Cada archivo se procesa, generando un archivo de resultados individual.
-5. Se consolidan todos los resultados en un archivo final.
-6. Se registran todas las operaciones en el archivo de log.
+1. El usuario carga los archivos Excel (web) o los coloca en el directorio apropiado (escritorio).
+2. La aplicación valida y procesa cada archivo.
+3. Se generan resultados individuales y un archivo consolidado.
+4. En la versión web, se presentan visualizaciones interactivas de los datos.
+5. El usuario puede descargar el informe consolidado.
+6. Todas las operaciones se registran para auditoría y depuración.
 
 ## Manejo de Errores y Logging
 
-- Se utiliza un sistema de logging detallado que registra cada operación en `log.txt`.
-- Los errores se manejan con bloques try-except y se registran tanto en el log como en la consola.
-- Se utilizan advertencias para notificar sobre problemas no críticos durante el procesamiento.
+- Sistema de logging detallado que registra operaciones en `log.txt`.
+- Manejo de excepciones con mensajes de error claros para el usuario.
+- En la versión web, se muestran advertencias y errores directamente en la interfaz.
 
 ## Optimización y Rendimiento
 
-- El programa utiliza pandas para el procesamiento eficiente de datos.
-- Se implementa un sistema de caché para evitar el reprocesamiento de datos ya analizados.
-- La consolidación de datos se realiza de manera eficiente, minimizando el uso de memoria.
+- Uso de pandas para procesamiento eficiente de datos.
+- Implementación de caché en Streamlit para mejorar el rendimiento de la versión web.
+- Procesamiento por lotes para manejar grandes volúmenes de datos.
 
 ## Pruebas
 
-El proyecto incluye un conjunto completo de pruebas unitarias para asegurar la calidad y el correcto funcionamiento del AnalizadorEstadisticoJudicial. Estas pruebas se encuentran en el directorio `tests/` y cubren las principales funcionalidades del sistema.
-
-### Ejecutar las pruebas
-
-Para ejecutar las pruebas unitarias:
+El proyecto incluye pruebas unitarias en el directorio `tests/`. Para ejecutarlas:
 
 1. Asegúrese de estar en el directorio raíz del proyecto.
-2. Ejecute el siguiente comando:
-
+2. Ejecute:
    ```
    python -m unittest discover tests
    ```
 
-   Este comando ejecutará todas las pruebas encontradas en el directorio `tests/`.
-
-### Cobertura de las pruebas
-
-Las pruebas unitarias cubren las siguientes funcionalidades principales:
-
-- Ordenamiento de archivos
+Las pruebas cubren:
 - Procesamiento de archivos Excel
-- Procesamiento de hojas y filas de datos
-- Consolidación de datos
-- Creación de archivos consolidados
-
-### Mantenimiento de las pruebas
-
-A medida que se agreguen nuevas características o se modifiquen las existentes, asegúrese de actualizar o agregar pruebas correspondientes para mantener una alta cobertura de pruebas.
-
-### Contribución a las pruebas
-
-Si contribuye al proyecto, por favor incluya pruebas unitarias para cualquier nueva funcionalidad o modificación que realice. Esto ayudará a mantener la calidad y confiabilidad del código a largo plazo.
+- Generación de informes consolidados
+- Funcionalidades de la interfaz web (utilizando mocks de Streamlit)
 
 ## Contribución
 
-Las contribuciones son bienvenidas. Por favor, siga estos pasos:
+Las contribuciones son bienvenidas. Por favor:
 
 1. Fork el repositorio.
 2. Cree una nueva rama (`git checkout -b feature/AmazingFeature`).
@@ -216,10 +208,10 @@ Consulte el archivo [CHANGELOG.md](CHANGELOG.md) para ver el historial detallado
 ## Roadmap
 
 - Implementar análisis estadísticos más avanzados.
-- Desarrollar una interfaz gráfica de usuario.
+- Mejorar la personalización de gráficos en la versión web.
 - Integrar directamente con el sistema SIERJU para la obtención y envío de datos.
-- Añadir capacidades de visualización de datos y generación de gráficos.
-- Implementar un sistema de pruebas automatizadas.
+- Desarrollar una API REST para integración con otros sistemas.
+- Implementar un sistema de autenticación para la versión web.
 
 ## Licencia
 
@@ -230,4 +222,3 @@ Este proyecto está licenciado bajo la Licencia MIT - vea el archivo [LICENSE](L
 Desarrollado y mantenido por Alexander Oviedo Fadul, Profesional Universitario Grado 11 en el Consejo Seccional de la Judicatura de Sucre.
 
 [GitHub](https://github.com/bladealex9848) | [Website](https://alexanderoviedofadul.dev/) | [Instagram](https://www.instagram.com/alexander.oviedo.fadul) | [Twitter](https://twitter.com/alexanderofadul) | [Facebook](https://www.facebook.com/alexanderof/) | [WhatsApp](https://api.whatsapp.com/send?phone=573015930519&text=Hola%20!Quiero%20conversar%20contigo!) | [LinkedIn](https://www.linkedin.com/in/alexander-oviedo-fadul/)
-    

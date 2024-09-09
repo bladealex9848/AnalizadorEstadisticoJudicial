@@ -7,6 +7,26 @@ y este proyecto se adhiere a [Versionado Semántico](https://semver.org/lang/es/
 
 # Registro de Cambios
 
+## [1.6.0] - 2024-09-09
+### Añadido
+- Implementación de una interfaz web utilizando Streamlit para mejorar la accesibilidad y usabilidad del analizador.
+- Nuevas funcionalidades para visualización de datos, incluyendo gráficos interactivos.
+- Capacidad de cargar y procesar archivos Excel directamente desde la interfaz web.
+
+### Cambiado
+- Refactorización del código principal para adaptarlo a la arquitectura de Streamlit.
+- Mejora en el manejo de errores y excepciones para proporcionar mensajes más claros al usuario.
+
+### Optimizado
+- Mejora en el rendimiento del procesamiento de archivos Excel de gran tamaño.
+- Implementación de caché para mejorar la velocidad de carga de datos repetitivos.
+
+### Corregido
+- Solucionados problemas de compatibilidad con diferentes versiones de Python y dependencias.
+- Corrección de errores en la lectura de ciertos formatos de archivos Excel.
+
+[1.6.0]: https://github.com/tuusuario/AnalizadorEstadisticoJudicial/compare/v1.5.0...v1.6.0
+
 ## [1.5.0] - 2024-09-08
 ### Añadido
 - Soporte mejorado para archivos .xls y .xlsx utilizando pandas
