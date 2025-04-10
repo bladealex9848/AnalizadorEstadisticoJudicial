@@ -45,6 +45,7 @@ Ambas versiones procesan archivos Excel con nombres específicos (por ejemplo, '
 - Sistema robusto de logging para seguimiento y auditoría
 - Optimización para el procesamiento eficiente de grandes volúmenes de datos
 - Versión de escritorio disponible para uso local
+- Descarga de resultados en formato ZIP
 
 ## Estructura del Proyecto
 
@@ -110,13 +111,14 @@ No se requiere configuración adicional para el uso básico. Para configuracione
    - Cargar archivos Excel trimestrales
    - Procesar los archivos
    - Visualizar resultados en gráficos interactivos
-   - Descargar el informe consolidado
+   - Descargar el informe consolidado en formato ZIP
 
 #### Características de la Versión Web:
 - Carga de múltiples archivos Excel
 - Visualización de datos en tablas interactivas
 - Generación de gráficos personalizables
-- Descarga de informes consolidados
+- Descarga de informes consolidados en formato ZIP
+- Registro detallado de operaciones
 - Acceso a recursos adicionales y documentación
 
 ### Versión de Escritorio
@@ -146,14 +148,17 @@ AnalizadorEstadisticoJudicial utiliza una arquitectura modular:
 5. Módulo de Consolidación: Combina los resultados en un archivo consolidado.
 6. Módulo de Visualización: Genera gráficos y tablas interactivas (versión web).
 7. Sistema de Logging: Registra todas las operaciones y errores.
+8. Módulo de Empaquetado: Crea archivos ZIP con todos los resultados (versión web).
 
 ## Componentes Principales
 
 - `main.py`: Punto de entrada para la versión web (Streamlit).
+- `AnalizadorEstadisticoJudicial.py`: Script principal para la versión de escritorio.
 - `process_excel_files()`: Procesa los archivos Excel y genera resultados individuales.
 - `create_consolidated_file()`: Crea el archivo consolidado final.
 - `show_charts()`: Genera visualizaciones interactivas de los datos (versión web).
-- `offer_download()`: Permite la descarga del informe consolidado (versión web).
+- `create_zip_file()`: Genera un archivo ZIP con todos los resultados (versión web).
+- `offer_download()`: Permite la descarga del archivo ZIP (versión web).
 
 ## Flujo de Trabajo
 
@@ -161,7 +166,7 @@ AnalizadorEstadisticoJudicial utiliza una arquitectura modular:
 2. La aplicación valida y procesa cada archivo.
 3. Se generan resultados individuales y un archivo consolidado.
 4. En la versión web, se presentan visualizaciones interactivas de los datos.
-5. El usuario puede descargar el informe consolidado.
+5. El usuario puede descargar el informe consolidado (archivo ZIP en la versión web).
 6. Todas las operaciones se registran para auditoría y depuración.
 
 ## Manejo de Errores y Logging
@@ -169,12 +174,14 @@ AnalizadorEstadisticoJudicial utiliza una arquitectura modular:
 - Sistema de logging detallado que registra operaciones en `log.txt`.
 - Manejo de excepciones con mensajes de error claros para el usuario.
 - En la versión web, se muestran advertencias y errores directamente en la interfaz.
+- El archivo de log se incluye en el archivo ZIP de resultados para facilitar la depuración.
 
 ## Optimización y Rendimiento
 
 - Uso de pandas para procesamiento eficiente de datos.
 - Implementación de caché en Streamlit para mejorar el rendimiento de la versión web.
 - Procesamiento por lotes para manejar grandes volúmenes de datos.
+- Manejo eficiente de archivos temporales en la versión web.
 
 ## Pruebas
 
