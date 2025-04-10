@@ -495,8 +495,6 @@ def show_charts(all_sheets_data):
             st.write("Datos en bruto:", all_sheets_data[sheet])
     else:
         st.warning(f"No hay suficientes datos disponibles para la hoja {sheet}")
-    else:
-        st.warning(f"No hay datos disponibles para la hoja {sheet}")
 
 def offer_download(zip_path):
     """
