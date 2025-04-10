@@ -248,7 +248,7 @@ def process_rows(data, file_name, all_sheets_data, writer, sheet, log_file):
         prev_val = current_val
 
     if sheet not in all_sheets_data:
-        all_sheets_data[sheet] = []
+        all_sheets_data[sheet] = [row_20_titles]
     
     all_sheets_data[sheet].append(total_row_values + [file_name])
 
@@ -256,11 +256,11 @@ def consolidate_data(data):
     """
     Función que consolida los datos por trimestre.
     """
-    consolidated_data = []
+    consolidated_data = [data[0]]  # Títulos
     trimesters = ["Primer Trimestre", "Segundo Trimestre", "Tercer Trimestre", "Cuarto Trimestre"]
 
     for trimester in trimesters:
-        rows = [row for row in data if trimester in row[-1]]
+        rows = [row for row in data[1:] if trimester in row[-1]]
         if rows:
             # Asumiendo que todas las filas tienen la misma estructura
             # Sumar los valores numéricos para cada columna
@@ -295,11 +295,15 @@ def create_consolidated_file(all_sheets_data, subfolder, log_file):
     for sheet, data in all_sheets_data.items():
         ws = consolidated_writer.create_sheet(title=sheet)
 
+        # Añadir el título (los encabezados de columna)
+        column_titles = data[0]  # Esta línea toma la fila de títulos
+        ws.append(column_titles)
+
         # Verificar si necesitamos una segunda tabla
-        has_multiple_parts = any("_" in str(item[-1]) for item in data)
+        has_multiple_parts = any("_" in str(item[-1]) for item in data[1:])
         
         # Primera tabla con datos individuales
-        for row in sorted(data, key=lambda x: sort_key_func(x[-1])):
+        for row in sorted(data[1:], key=lambda x: sort_key_func(x[-1])):
             ws.append(row)
 
         # Si hay múltiples partes, agregamos la segunda tabla
@@ -308,8 +312,8 @@ def create_consolidated_file(all_sheets_data, subfolder, log_file):
             ws.append([])
 
             # Segunda tabla
-            consolidated_rows = consolidate_data(data)
-            for row in consolidated_rows:
+            consolidated_data = consolidate_data(data)
+            for row in consolidated_data:
                 ws.append(row)
 
         for row in ws.rows:
@@ -386,7 +390,9 @@ def show_summary(all_sheets_data):
         
         # Convertir datos a DataFrame para mejor visualización
         try:
-            df = pd.DataFrame(data, columns=["Concepto"] + [f"Valor {i+1}" for i in range(len(data[0])-2)] + ["Trimestre"])
+            # Usar los títulos originales como columnas
+            columns = data[0]
+            df = pd.DataFrame(data[1:], columns=columns + ["Trimestre"])
             st.dataframe(df)
         except Exception as e:
             st.error(f"Error al mostrar datos de la hoja {sheet}: {str(e)}")
@@ -406,13 +412,18 @@ def show_details(all_sheets_data):
                              ["Primer Trimestre", "Segundo Trimestre", "Tercer Trimestre", "Cuarto Trimestre"])
     
     for sheet, data in all_sheets_data.items():
+        if len(data) <= 1:  # Si solo hay encabezados
+            continue
+            
         # Filtrar datos por trimestre seleccionado
-        trimester_data = [row for row in data if trimester in row[-1]]
+        trimester_data = [row for row in data[1:] if trimester in row[-1]]
         
         if trimester_data:
             st.subheader(f"{sheet} - {trimester}")
             try:
-                df = pd.DataFrame(trimester_data, columns=["Concepto"] + [f"Valor {i+1}" for i in range(len(trimester_data[0])-2)] + ["Trimestre"])
+                # Usar los títulos originales como columnas
+                columns = data[0]
+                df = pd.DataFrame(trimester_data, columns=columns + ["Trimestre"])
                 st.dataframe(df)
             except Exception as e:
                 st.error(f"Error al mostrar detalles de la hoja {sheet} para {trimester}: {str(e)}")
@@ -430,44 +441,60 @@ def show_charts(all_sheets_data):
     
     sheet = st.selectbox("Selecciona una hoja", list(all_sheets_data.keys()))
     
-    if all_sheets_data[sheet]:
+    if all_sheets_data[sheet] and len(all_sheets_data[sheet]) > 1:
         try:
-            # Transformar datos para gráficos
-            data = all_sheets_data[sheet]
+            # Obtener los títulos originales
+            column_titles = all_sheets_data[sheet][0]
+            
+            # Transformar datos para gráficos (solo datos, no encabezados)
+            data = all_sheets_data[sheet][1:]
             df = pd.DataFrame(data)
             
-            # La última columna es el trimestre
-            df.columns = ["Concepto"] + [f"Valor_{i}" for i in range(len(df.columns)-2)] + ["Trimestre"]
+            # Asignar columnas apropiadas
+            df.columns = column_titles + ["Trimestre"]
             
             # Convertir columnas numéricas
+            numeric_columns = []
             for col in df.columns:
-                if col not in ["Concepto", "Trimestre"]:
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
+                if col != "Trimestre":
+                    try:
+                        df[col] = pd.to_numeric(df[col], errors='coerce')
+                        numeric_columns.append(col)
+                    except:
+                        pass
             
+            if not numeric_columns:
+                st.warning("No se encontraron columnas numéricas para graficar.")
+                return
+                
             chart_type = st.radio("Tipo de gráfico", ["Barras", "Líneas", "Combinado"])
             
-            valor_column = st.selectbox("Selecciona columna de valor", 
-                                       [col for col in df.columns if col.startswith("Valor_")])
+            valor_column = st.selectbox("Selecciona columna de valor", numeric_columns)
+            
+            # Filtrar solo las filas con 'Total' como concepto para mantener el gráfico limpio
+            df_filtered = df[df.iloc[:, 0] == 'Total']
             
             if chart_type == "Barras":
-                fig = px.bar(df, x="Trimestre", y=valor_column, title=f"{valor_column} por Trimestre")
+                fig = px.bar(df_filtered, x="Trimestre", y=valor_column, title=f"{valor_column} por Trimestre")
             elif chart_type == "Líneas":
-                fig = px.line(df, x="Trimestre", y=valor_column, title=f"{valor_column} a lo largo de los Trimestres")
+                fig = px.line(df_filtered, x="Trimestre", y=valor_column, title=f"{valor_column} a lo largo de los Trimestres")
             else:
                 fig = go.Figure()
-                fig.add_trace(go.Bar(x=df["Trimestre"], y=df[valor_column], name="Valor"))
-                fig.add_trace(go.Line(x=df["Trimestre"], y=df[valor_column], name="Tendencia"))
+                fig.add_trace(go.Bar(x=df_filtered["Trimestre"], y=df_filtered[valor_column], name="Valor"))
+                fig.add_trace(go.Line(x=df_filtered["Trimestre"], y=df_filtered[valor_column], name="Tendencia"))
                 fig.update_layout(title=f"{valor_column} por Trimestre (Combinado)")
             
             st.plotly_chart(fig)
             
             # Mostrar tabla de datos para referencia
             st.subheader("Datos de la gráfica")
-            st.dataframe(df[["Trimestre", valor_column]])
+            st.dataframe(df_filtered[["Trimestre", valor_column]])
             
         except Exception as e:
             st.error(f"Error al crear el gráfico: {str(e)}")
             st.write("Datos en bruto:", all_sheets_data[sheet])
+    else:
+        st.warning(f"No hay suficientes datos disponibles para la hoja {sheet}")
     else:
         st.warning(f"No hay datos disponibles para la hoja {sheet}")
 
